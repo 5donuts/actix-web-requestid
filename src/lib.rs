@@ -19,16 +19,12 @@
 //!     .wrap(RequestIDService::default())
 //!     .service(web::resource("/index.html").to(index));
 //! ```
-extern crate actix_web;
-extern crate futures;
-extern crate rand;
-
+use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
 use actix_web::dev::{Payload, Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::{HeaderName, HeaderValue};
-use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
-use futures::future::{ok, Future, Ready};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use std::future::{Future, Ready, ready};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -104,7 +100,7 @@ impl FromRequest for RequestID {
 
     #[inline]
     fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
-        ok(RequestID(req.clone()))
+        ready(Ok(RequestID(req.clone())))
     }
 }
 
@@ -139,7 +135,7 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ok(RequestIDServiceMiddleware { service })
+        ready(Ok(RequestIDServiceMiddleware { service }))
     }
 }
 
@@ -158,7 +154,7 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     #[allow(clippy::type_complexity)]
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>>>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
